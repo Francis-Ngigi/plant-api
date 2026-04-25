@@ -2,40 +2,35 @@ import os
 import io
 import json
 import numpy as np
-import tensorflow as tf
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
-from tf_keras.models import load_model
 from PIL import Image
 
 # -----------------------
-# FastAPI app setup
-# -----------------------
-app = FastAPI(title="Plant Disease Prediction API")
-
-# -----------------------
-# Paths — files sit next to main.py in the project root
+# Paths
 # -----------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "plant_disease_model.keras")
 CLASS_PATH = os.path.join(BASE_DIR, "class_names.json")
 
-# -----------------------
-# Load model and classes at startup
-# -----------------------
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
-if not os.path.exists(CLASS_PATH):
-    raise FileNotFoundError(f"Class names file not found: {CLASS_PATH}")
+model = None
+class_names = None
 
-print("Loading model...")
-model = load_model(MODEL_PATH, compile=False)
-print("✅ Model loaded successfully.")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model, class_names
+    from tf_keras.models import load_model
+    print("Loading model...")
+    model = load_model(MODEL_PATH, compile=False)
+    print("✅ Model loaded successfully.")
+    with open(CLASS_PATH, "r") as f:
+        class_names = json.load(f)
+    print(f"✅ Number of classes: {len(class_names)}")
+    yield
 
-with open(CLASS_PATH, "r") as f:
-    class_names = json.load(f)
-print(f"✅ Number of classes: {len(class_names)}")
+app = FastAPI(title="Plant Disease Prediction API", lifespan=lifespan)
 
 # -----------------------
 # Image preprocessing
