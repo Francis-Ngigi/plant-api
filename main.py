@@ -2,7 +2,6 @@ import os
 import io
 import json
 import numpy as np
-
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 from PIL import Image
@@ -19,7 +18,7 @@ class_names = None
 def load_resources():
     global model, class_names
     if model is None:
-        from tf_keras.models import load_model
+        from keras.models import load_model
         print("Loading model...")
         model = load_model(MODEL_PATH, compile=False)
         print("✅ Model loaded.")
